@@ -3,10 +3,18 @@
     name: ipa-undanganku
 
   datasource:
-    url: jdbc:postgresql://103.93.129.174:5432/undanganku
-    username: myuser
-    password: P@ssw0rd
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 20000
+      minimum-idle: 2
+      maximum-pool-size: 10
+      idle-timeout: 300000
+      max-lifetime: 600000
+      keepalive-time: 60000
+      connection-test-query: SELECT 1
 
   jpa:
     hibernate:

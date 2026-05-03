@@ -43,10 +43,36 @@ spring:
 ```
 Java 21 virtual threads aktif — cocok untuk JBoss EAP 8 + Spring Boot 3.3.
 
+## Application.java — Aturan @EnableJpaAuditing
+
+`@EnableJpaAuditing` hanya boleh ada di **satu tempat**. Project ini menaruhnya di `AuditingConfig.java`.
+
+```java
+// BENAR — Application.java bersih
+@SpringBootApplication
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}
+
+// SALAH — duplikat dengan AuditingConfig → BeanDefinitionOverrideException
+@SpringBootApplication
+@EnableJpaAuditing   // ← JANGAN, sudah ada di AuditingConfig
+public class Application { ... }
+```
+
+Error yang muncul jika duplikat:
+```
+BeanDefinitionOverrideException: Invalid bean definition with name 'jpaAuditingHandler'
+```
+
 ## Troubleshooting
 
 | Gejala | Penyebab | Fix |
 |---|---|---|
-| Port 8080 already in use | Proses lain pakai port | Ubah port di `application-local.yml` atau kill prosesnya |
+| Port 8080 already in use | Proses lain pakai port | Kill via PowerShell: `Stop-Process -Id (Get-NetTCPConnection -LocalPort 8080 -State Listen).OwningProcess -Force` |
+| `BeanDefinitionOverrideException: jpaAuditingHandler` | `@EnableJpaAuditing` duplikat | Hapus dari `Application.java`, biarkan hanya di `AuditingConfig.java` |
+| `Unable to find a suitable main class` | `Application.java` belum dibuat | Buat file entry point dengan `@SpringBootApplication` |
 | WAR deploy gagal di JBoss | Module conflict | Tambahkan exclusion di `jboss-deployment-structure.xml` |
 | Frontend blank page | Backend tidak jalan / path salah | Cek `baseHref` di `angular.json`, pastikan backend up |

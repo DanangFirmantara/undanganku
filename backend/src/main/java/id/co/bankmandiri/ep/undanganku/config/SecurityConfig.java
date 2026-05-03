@@ -49,13 +49,19 @@ public class SecurityConfig {
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-		http.csrf().disable()
-			.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-			.and()
-			.authorizeHttpRequests()
-				.requestMatchers("/api/auth/login", "/api/auth/logout", "/api/health").permitAll()
+		http
+			.csrf(csrf -> csrf.disable())
+			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers(
+					"/api/auth/login",
+					"/api/auth/logout",
+					"/api/auth/validate",
+					"/api/auth/init-admin",
+					"/api/health"
+				).permitAll()
 				.anyRequest().authenticated()
-			.and()
+			)
 			.authenticationProvider(authenticationProvider())
 			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

@@ -3,7 +3,6 @@ package id.co.bankmandiri.ep.undanganku.security;
 import id.co.bankmandiri.ep.undanganku.config.JwtConfig;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
@@ -29,7 +28,7 @@ public class JwtUtil {
 			.subject(email)
 			.issuedAt(now)
 			.expiration(expiryDate)
-			.signWith(key, SignatureAlgorithm.HS512)
+			.signWith(key, Jwts.SIG.HS256)
 			.compact();
 	}
 

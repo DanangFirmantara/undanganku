@@ -33,6 +33,41 @@ anyRequest         → authenticated
 - Hashing: BCrypt (`BCryptPasswordEncoder`)
 - Kolom di DB: `password_hash VARCHAR(255)`
 
+## JwtUtil — Cara yang Benar (JJWT 0.12.3)
+
+```java
+// BENAR — gunakan Jwts.SIG.HS256 (bukan SignatureAlgorithm enum yang deprecated)
+.signWith(key, Jwts.SIG.HS256)
+
+// SALAH — akan throw WeakKeyException jika key < 512 bit
+.signWith(key, SignatureAlgorithm.HS512)
+```
+
+Key dibuat dari: `Keys.hmacShaKeyFor(secret.getBytes())`
+- Secret harus **minimal 32 karakter** (256 bit) untuk HS256
+- Secret dari `.env` adalah raw string → `.getBytes()` → 1 char = 1 byte
+- Jangan pakai HS512 kecuali secret ≥ 64 karakter
+
+## SecurityConfig — Lambda Style (Spring Boot 3.3)
+
+```java
+// BENAR — lambda style (Spring Boot 3.3)
+http
+    .csrf(csrf -> csrf.disable())
+    .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
+    .authorizeHttpRequests(auth -> auth
+        .requestMatchers("/api/auth/**", "/api/health").permitAll()
+        .anyRequest().authenticated()
+    )
+
+// SALAH — deprecated, akan compile warning di Spring Boot 3.3
+http.csrf().disable().and().authorizeHttpRequests()...
+```
+
+Semua endpoint public harus **eksplisit** didaftarkan di `requestMatchers`. Contoh yang sering terlupa:
+- `/api/auth/validate`
+- `/api/auth/init-admin`
+
 ## Troubleshooting
 
 | Gejala | Kemungkinan Penyebab | Fix |
@@ -41,3 +76,6 @@ anyRequest         → authenticated
 | Token valid tapi 403 | User tidak punya role yang diminta | Cek tabel user_roles |
 | Auto-logout terlalu cepat | Clock skew server vs client | Verifikasi timezone server |
 | `SignatureException` | JWT_SECRET berbeda antara generate dan validate | Pastikan satu secret konsisten |
+| `WeakKeyException` saat startup | JWT_SECRET terlalu pendek | Minimal 32 karakter untuk HS256 |
+| 500 saat login (bukan 401) | `signWith` pakai HS512 tapi key < 64 byte | Ganti ke `Jwts.SIG.HS256` |
+| 403 pada endpoint auth | Endpoint belum didaftarkan di `permitAll()` | Tambahkan ke `requestMatchers` di SecurityConfig |

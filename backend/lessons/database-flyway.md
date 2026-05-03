@@ -31,6 +31,31 @@ deleted_at  TIMESTAMP    NULL
 |---|---|
 | `V1__initial_schema.sql` | `roles`, `users`, `user_roles`, `audit_logs` |
 | `V2__initial_data.sql` | Seed roles, admin user, test user |
+| `V3__fix_password_hashes.sql` | Fix BCrypt hash untuk admin@app.com dan user@app.com |
+
+## BCrypt Hash di Seed Data
+
+Hash yang di-hardcode di migration harus diverifikasi kebenarannya sebelum commit. Cara generate hash yang benar:
+
+```powershell
+# Compile dan run HashGen.java dengan spring-security-crypto jar dari .m2
+$jar = "$env:USERPROFILE\.m2\repository\org\springframework\security\spring-security-crypto\6.2.1\spring-security-crypto-6.2.1.jar"
+javac -cp "$jar" HashGen.java
+java -cp ".;$jar" HashGen
+```
+
+```java
+// HashGen.java
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+public class HashGen {
+    public static void main(String[] args) {
+        BCryptPasswordEncoder enc = new BCryptPasswordEncoder();
+        System.out.println(enc.encode("Admin@123456"));
+    }
+}
+```
+
+Jika hash di migration salah → **jangan edit V2**, buat V3 migration yang UPDATE password_hash.
 
 ## Aturan Flyway
 - **Jangan pernah edit file migration yang sudah di-commit** — Flyway akan gagal karena checksum berubah
@@ -47,6 +72,23 @@ spring:
     out-of-order: false
 ```
 
+## HikariCP — Konfigurasi untuk Remote PostgreSQL
+
+Tanpa konfigurasi ini, koneksi ke remote DB akan putus saat idle dan menyebabkan 500 error:
+
+```yaml
+spring:
+  datasource:
+    hikari:
+      connection-timeout: 20000
+      minimum-idle: 2
+      maximum-pool-size: 10
+      idle-timeout: 300000
+      max-lifetime: 600000
+      keepalive-time: 60000        # ping koneksi setiap 60 detik agar tidak putus
+      connection-test-query: SELECT 1
+```
+
 ## Troubleshooting
 
 | Gejala | Penyebab | Fix |
@@ -54,3 +96,5 @@ spring:
 | `FlywayException: checksum mismatch` | File migration yang sudah di-run diedit | Kembalikan file ke kondisi original atau repair via `flyway repair` |
 | Migration tidak jalan | Versi tidak sequential / ada gap | Cek file existing, pastikan nomor lanjut |
 | `PSQLException: relation already exists` | Migration dijalankan dua kali tanpa checksum | Periksa tabel `flyway_schema_history` |
+| 500 error setelah idle beberapa menit | HikariCP connection timeout ke remote DB | Tambahkan `keepalive-time` dan `connection-test-query` di config |
+| Login 401 padahal user ada di DB | BCrypt hash di migration tidak match password | Generate hash baru via HashGen.java, buat migration baru untuk UPDATE |
