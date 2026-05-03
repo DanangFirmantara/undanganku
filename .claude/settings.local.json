@@ -1,0 +1,23 @@
+{
+  "model": "sonnet",
+  "permissions": {
+    "allow": [
+      "Skill(update-config)",
+      "Bash(git *)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/git-auto-push.sh",
+            "timeout": 30,
+            "statusMessage": "Pushing changes to development branch..."
+          }
+        ]
+      }
+    ]
+  }
+}

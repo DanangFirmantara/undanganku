@@ -1,0 +1,72 @@
+<div class="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md w-full card">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-center text-gray-900">{{APP_NAME}}</h1>
+      <p class="mt-2 text-center text-gray-600">Sign in to your account</p>
+    </div>
+
+    @if (error) {
+      <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        {{ error }}
+      </div>
+    }
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="mb-4">
+        <label for="email" class="block text-gray-700 font-medium mb-2">
+          Email Address
+        </label>
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          class="input"
+          placeholder="admin@app.com"
+        />
+        @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
+          <span class="text-red-600 text-sm">Valid email is required</span>
+        }
+      </div>
+
+      <div class="mb-6">
+        <label for="password" class="block text-gray-700 font-medium mb-2">
+          Password
+        </label>
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          class="input"
+          placeholder="Enter your password"
+        />
+        @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+          <span class="text-red-600 text-sm">Password must be at least 8 characters</span>
+        }
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="loginForm.invalid || loading"
+        class="w-full btn btn-primary"
+      >
+        @if (loading) {
+          Signing in...
+        } @else {
+          Sign In
+        }
+      </button>
+    </form>
+
+    <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded">
+      <p class="text-sm text-gray-600">
+        <strong>Demo Credentials:</strong>
+      </p>
+      <p class="text-sm text-gray-600 mt-2">
+        Admin: admin&#64;app.com / Admin&#64;123456
+      </p>
+      <p class="text-sm text-gray-600">
+        User: user&#64;app.com / User&#64;123456
+      </p>
+    </div>
+  </div>
+</div>

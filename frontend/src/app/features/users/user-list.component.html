@@ -1,0 +1,66 @@
+<div class="space-y-6">
+  <div class="flex justify-between items-center">
+    <h1 class="text-4xl font-bold text-gray-900">User Management</h1>
+    <button (click)="onAddUser()" class="btn btn-primary">
+      + Add New User
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-100 border-b border-gray-300">
+          <tr>
+            <th class="px-4 py-3 text-left font-semibold text-gray-700">Email</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-700">Name</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+            <th class="px-4 py-3 text-left font-semibold text-gray-700">Roles</th>
+            <th class="px-4 py-3 text-center font-semibold text-gray-700">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of users; track user.id) {
+            <tr class="border-b border-gray-200 hover:bg-gray-50">
+              <td class="px-4 py-3 text-gray-900">{{ user.email }}</td>
+              <td class="px-4 py-3 text-gray-900">
+                {{ user.firstName }} {{ user.lastName }}
+              </td>
+              <td class="px-4 py-3">
+                @if (user.isActive) {
+                  <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                    Active
+                  </span>
+                } @else {
+                  <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-sm">
+                    Inactive
+                  </span>
+                }
+              </td>
+              <td class="px-4 py-3 text-gray-600 text-sm">
+                {{ user.roles.join(', ') }}
+              </td>
+              <td class="px-4 py-3 text-center">
+                <button
+                  (click)="onEdit(user.id)"
+                  class="text-blue-600 hover:text-blue-900 mr-3"
+                >
+                  Edit
+                </button>
+                <button
+                  (click)="onDelete(user.id)"
+                  class="text-red-600 hover:text-red-900"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card text-center text-gray-600">
+    <p>Showing {{ users.length }} user(s)</p>
+  </div>
+</div>

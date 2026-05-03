@@ -1,0 +1,96 @@
+﻿# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+.classpath
+.project
+.settings/
+*.log
+.idea/
+*.iml
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Angular
+dist/
+.angular/
+angular.log
+*.ng.log
+
+# IDE
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.p12
+
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+*~
+
+# Build outputs
+build/
+out/
+bin/
+
+# Dependencies
+.node-gyp/
+.npm
+
+# Misc
+.cache
+.parcel-cache
+.next
+out
+.nuxt
+dist
+.cache/
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.env.test
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE files
+.idea
+*.sublime-project
+*.sublime-workspace
+
+# Generated files
+frontend/src/main/resources/static/*
+!frontend/src/main/resources/static/.gitkeep
+

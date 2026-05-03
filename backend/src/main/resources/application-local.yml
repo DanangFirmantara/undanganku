@@ -1,0 +1,38 @@
+﻿spring:
+  main:
+    allow-bean-definition-overriding: true
+
+  datasource:
+    url: jdbc:postgresql://103.93.129.174:5432/undanganku
+    username: myuser
+    password: P@ssw0rd
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 60000
+      idle-timeout: 300000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    locations: classpath:db/migration/postgresql
+
+server:
+  port: 8081
+
+jwt:
+  secret: ${JWT_SECRET:dev-secret-key-change-in-production}
+  expiration: 900000
+
+logging:
+  level:
+    root: INFO
+    id.co.bankmandiri.ep.undanganku: DEBUG
+    org.springframework.security: DEBUG
+
