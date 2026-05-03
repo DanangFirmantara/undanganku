@@ -1,12 +1,12 @@
 ---
 name: java-backend-agent
-description: Build Spring Boot REST APIs for IPA NRM (JBoss EAP 8 compatible)
+description: Build Spring Boot REST APIs for Undanganku (JWT auth, PostgreSQL, JBoss EAP 8)
 model: sonnet
 ---
 
-# Java Backend Agent — IPA NRM Spring Boot Implementation
+# Java Backend Agent — Undanganku Spring Boot Implementation
 
-You are a Java 21 + Spring Boot 3.3 specialist building the IPA NRM REST API.
+You are a Java 21 + Spring Boot 3.3 specialist building the Undanganku REST API.
 
 ---
 
@@ -82,8 +82,8 @@ Setelah issue resolved, jalankan urutan ini:
 **Naming convention lesson files:**
 | Topik | Nama file |
 |---|---|
-| SSO, autentikasi, security, 403 | `sso-security-local-dev.md` |
-| Database, Flyway, migrasi, Oracle/PG | `database-flyway.md` |
+| JWT, autentikasi, security, 401/403 | `jwt-security.md` |
+| Database, Flyway, migrasi, PostgreSQL | `database-flyway.md` |
 | JBoss, deployment, WAR, packaging | `jboss-deployment.md` |
 | Error handling, exception, logging | `error-handling-logging.md` |
 | Performance, caching, query optimization | `performance.md` |
@@ -97,32 +97,38 @@ Setelah issue resolved, jalankan urutan ini:
 
 | File | Topik | Kapan dibaca |
 |---|---|---|
-| [`sso-security-local-dev.md`](../../backend/lessons/sso-security-local-dev.md) | SSO portal, 403 fixes, SSL cert, local dev workflow, FilterRegistrationBean | Setiap issue auth / 403 / local dev setup |
-| [`flyway-migrations.md`](../../backend/lessons/flyway-migrations.md) | Flyway, Oracle/PostgreSQL DDL, reserved words, soft-delete unique index, CHAR(1) | Membuat atau mengubah migration, issue Oracle DDL |
-| [`jboss-deployment.md`](../../backend/lessons/jboss-deployment.md) | WAR packaging, JBoss EAP 8 gotchas, JNDI, SpaWebFilter, deploy checklist | Menyentuh `pom.xml`, `web.xml`, deployment, atau JBoss config |
-| [`error-handling-logging.md`](../../backend/lessons/error-handling-logging.md) | Entity serialization 500, ProblemDetail, GlobalExceptionHandler, logging tanpa Lombok | Membuat exception handler, endpoint baru, atau ada error 500 |
+| _(belum ada)_ | Tambahkan setelah lesson pertama dibuat | — |
 
 ---
 
 ## Hard Rules (Non-Negotiable)
 
-- **No Lombok** — write explicit getters, setters, and constructors
-- **No login/logout/auth endpoints** — authentication is the portal's job; NRM only _consumes_ the `PORTAL_AUTH` cookie
-- **No User entity, no Role entity, no Permission entity** — the portal owns identity; do not recreate it here
-- **No JWT issuance** — `PortalSsoFilter` from `ipa-portal-shared-security` validates the cookie and populates `SecurityContextHolder`
-- **No `is_deleted` flag** — soft-delete uses `deleted_at TIMESTAMP NULL` (null = active, non-null = deleted)
+- **No Lombok** — tulis explicit getters, setters, dan constructors
+- **JWT sendiri** — Undanganku mengelola JWT sendiri via `JwtAuthFilter` + JJWT 0.12.3 (HS256, 15-menit expiry)
+- **Login/logout endpoints ADA** — `POST /api/auth/login`, `POST /api/auth/logout`
+- **User entity ADA** — users, roles, user_roles dikelola oleh Undanganku
+- **No `is_deleted` flag** — soft-delete menggunakan `deleted_at TIMESTAMP NULL` (null = aktif)
+- **Audit columns 7 field** — setiap entity wajib: `id`, `guid`, `created_at`, `created_by`, `updated_at`, `updated_by`, `deleted_at`
+- **`@PreAuthorize`** — gunakan untuk role-based access control
+- **PostgreSQL only** — tidak ada Oracle. Flyway location: `classpath:db/migration/postgresql`
+
+---
 
 ## App Identity
 
 | Property | Value |
 |---|---|
-| groupId | `id.co.bankmandiri.ep.nrm` |
-| artifactId | `ipa-nrm-backend` |
-| WAR name | `ipa-nrm` |
-| Context path | `/ipa-nrm` |
-| JNDI datasource | `java:/IpaNrmDS` |
-| App code | `NRM` |
-| Roles | `ROLE_ADMIN`, `ROLE_USER` (JWT claim `NRM:ADMIN` / `NRM:USER` stripped by `PortalSsoFilter`) |
+| groupId | `id.co.bankmandiri.ep.undanganku` |
+| artifactId | `ipa-undanganku-backend` |
+| WAR name | `ipa-undanganku` |
+| Context path | `/ipa-undanganku` |
+| JWT library | JJWT 0.12.3 |
+| JWT algorithm | HS256 |
+| JWT expiry | 900000 ms (15 menit) |
+| JWT secret | env var `JWT_SECRET` |
+| Roles | `ROLE_ADMIN`, `ROLE_USER` |
+
+---
 
 ## Project Structure
 
@@ -131,83 +137,71 @@ Setelah issue resolved, jalankan urutan ini:
 ```
 backend/
 ├── pom.xml
-└── src/main/java/id/co/bankmandiri/ep/nrm/
+└── src/main/java/id/co/bankmandiri/ep/undanganku/
     ├── Application.java
-    ├── ServletInitializer.java
+    ├── ServletInitializer.java               ← WAR support untuk JBoss
     │
     ├── config/
-    │   ├── SecurityConfig.java          ← PortalSsoFilter wiring + permitAll rules
-    │   ├── AuditingConfig.java          ← Spring Data JPA Auditing (createdBy/updatedBy)
-    │   └── SmokeSecurityConfig.java     ← smoke profile (no SSO, permitAll)
+    │   ├── SecurityConfig.java               ← JWT filter wiring, permitAll rules
+    │   └── AuditingConfig.java               ← Spring Data JPA Auditing (createdBy/updatedBy)
     │
     ├── domain/
-    │   ├── BaseEntity.java              ← @MappedSuperclass, 5 audit cols + soft-delete
-    │   ├── YesNoConverter.java          ← @Converter CHAR(1) 'Y'/'N' ↔ Boolean
-    │   ├── DataSewa.java
-    │   ├── DetailDataSewa.java
-    │   ├── JenisBangunan.java
-    │   ├── Reminder.java
-    │   ├── NrmTemplate.java
-    │   ├── Dokumen.java
-    │   ├── History.java
-    │   └── Notification.java
+    │   ├── BaseEntity.java                   ← @MappedSuperclass, 7 audit cols + soft-delete
+    │   ├── User.java
+    │   └── Role.java
     │
     ├── repository/
-    │   ├── DataSewaRepository.java
-    │   ├── DetailDataSewaRepository.java
-    │   ├── JenisBangunanRepository.java
-    │   ├── ReminderRepository.java
-    │   ├── NrmTemplateRepository.java
-    │   ├── HistoryRepository.java
-    │   └── NotificationRepository.java
+    │   ├── UserRepository.java
+    │   └── RoleRepository.java
     │
     ├── service/
-    │   ├── DataSewaService.java
-    │   ├── DetailDataSewaService.java
-    │   ├── MasterDataService.java       ← JenisBangunan + Reminder + NrmTemplate
-    │   └── DashboardService.java
+    │   ├── AuthService.java                  ← login, logout, JWT generate/validate
+    │   └── UserService.java
     │
     ├── controller/
-    │   ├── HealthController.java        ← /api/public/health, /api/public/portal-status
-    │   ├── MeController.java            ← /api/me
-    │   ├── DashboardController.java     ← /api/dashboard/summary
-    │   ├── DataSewaController.java      ← /api/data-sewa
-    │   ├── DetailDataSewaController.java← /api/detail-data-sewa
-    │   └── MasterDataController.java    ← /api/master/{jenis-bangunan,reminder,template}
+    │   ├── AuthController.java               ← POST /api/auth/login, /api/auth/logout
+    │   └── UserController.java               ← /api/users (ROLE_ADMIN)
     │
-    └── dto/
-        ├── UserInfoResponse.java
-        ├── DashboardSummaryResponse.java
-        ├── DataSewaRequest.java
-        └── DetailDataSewaRequest.java
+    ├── security/
+    │   ├── JwtAuthFilter.java                ← OncePerRequestFilter, validate Bearer token
+    │   └── JwtService.java                   ← JJWT generate/parse/validate
+    │
+    ├── dto/
+    │   ├── LoginRequest.java
+    │   ├── LoginResponse.java
+    │   └── UserResponse.java
+    │
+    └── exception/
+        └── GlobalExceptionHandler.java       ← ProblemDetail responses
 ```
+
+---
 
 ## Key Implementation Patterns
 
 ### 1. No Lombok — Explicit Constructor Injection
 ```java
 @Service
-public class DataSewaService {
-    private final DataSewaRepository repository;
+public class UserService {
+    private final UserRepository userRepository;
 
-    public DataSewaService(DataSewaRepository repository) {
-        this.repository = repository;
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 }
 ```
 
 ### 2. DTOs as Records
 ```java
-public record DataSewaRequest(
-    @NotBlank String namaCabang,
-    @NotBlank String kodeCabang,
-    @NotNull Long regionId
+public record LoginRequest(
+    @NotBlank @Email String email,
+    @NotBlank String password
 ) {}
 
-public record DataSewaResponse(Long id, String namaCabang, String kodeCabang) {}
+public record LoginResponse(String token, long expiresIn, UserInfo user) {}
 ```
 
-### 3. BaseEntity (Spring Data Auditing + Soft-Delete)
+### 3. BaseEntity (7 audit columns + soft-delete)
 ```java
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
@@ -215,8 +209,10 @@ public abstract class BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
     private Long id;
+
+    @Column(name = "guid", nullable = false, updatable = false, unique = true)
+    private UUID guid = UUID.randomUUID();
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -237,31 +233,31 @@ public abstract class BaseEntity {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    // explicit getters/setters for each field
+    // explicit getters/setters untuk setiap field
 }
 ```
 
-### 4. Entity with Soft-Delete (put @SQLDelete + @SQLRestriction on the concrete class)
+### 4. Entity dengan Soft-Delete
 ```java
 @Entity
-@Table(name = "data_sewa")
-@SQLDelete(sql = "UPDATE data_sewa SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@Table(name = "users")
+@SQLDelete(sql = "UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
-public class DataSewa extends BaseEntity {
+public class User extends BaseEntity {
     // fields + explicit getters/setters
 }
 ```
 
-### 5. Authorization with @PreAuthorize
+### 5. Authorization dengan @PreAuthorize
 ```java
-@PostMapping
+@GetMapping
 @PreAuthorize("hasRole('ADMIN')")
-public ResponseEntity<DataSewaResponse> create(@Valid @RequestBody DataSewaRequest req) {
-    return ResponseEntity.ok(service.create(req));
+public ResponseEntity<List<UserResponse>> findAll() {
+    return ResponseEntity.ok(userService.findAll());
 }
 ```
 
-### 6. Error Handling with ProblemDetail
+### 6. Error Handling dengan ProblemDetail
 ```java
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -273,351 +269,172 @@ public class GlobalExceptionHandler {
 }
 ```
 
-### 7. SecurityConfig (PortalSsoFilter wiring — do not write your own JWT filter)
+### 7. SecurityConfig (JWT Filter — tulis sendiri, bukan Portal SSO)
 ```java
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private final JwtAuthFilter jwtAuthFilter;
+
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+        this.jwtAuthFilter = jwtAuthFilter;
+    }
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http,
-            @Autowired(required = false) PortalSsoFilter portalSsoFilter) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .csrf(c -> c.disable());
-
-        if (portalSsoFilter != null) {
-            http
-                .authorizeHttpRequests(a -> a
-                    .requestMatchers("/", "/index.html", "/*.js", "/*.css", "/assets/**", "/*.ico").permitAll()
-                    .requestMatchers("/api/public/**", "/actuator/health").permitAll()
-                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                    .anyRequest().authenticated()
-                )
-                .addFilterBefore(portalSsoFilter, UsernamePasswordAuthenticationFilter.class);
-        } else {
-            http.authorizeHttpRequests(a -> a.anyRequest().permitAll());
-        }
+            .csrf(c -> c.disable())
+            .authorizeHttpRequests(a -> a
+                .requestMatchers("/", "/index.html", "/*.js", "/*.css", "/assets/**").permitAll()
+                .requestMatchers("/api/auth/**", "/actuator/health").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }
 ```
 
-## pom.xml Dependencies
+### 8. JwtService (JJWT 0.12.3)
+```java
+@Service
+public class JwtService {
+    @Value("${jwt.secret}")
+    private String secret;
 
-```xml
-<!-- Core -->
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-web</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-jpa</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-security</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-validation</artifactId>
-</dependency>
+    @Value("${jwt.expiration}")
+    private long expiration;
 
-<!-- Shared Portal SSO (provides PortalSsoFilter) -->
-<dependency>
-    <groupId>id.co.bankmandiri.ep.portal</groupId>
-    <artifactId>ipa-portal-shared-security</artifactId>
-    <version>${shared.security.version}</version>
-</dependency>
+    public String generateToken(UserDetails userDetails) {
+        return Jwts.builder()
+            .subject(userDetails.getUsername())
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + expiration))
+            .signWith(getSigningKey())
+            .compact();
+    }
 
-<!-- Database Migrations -->
-<dependency>
-    <groupId>org.flywaydb</groupId>
-    <artifactId>flyway-core</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.flywaydb</groupId>
-    <artifactId>flyway-database-oracle</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.flywaydb</groupId>
-    <artifactId>flyway-database-postgresql</artifactId>
-</dependency>
+    public boolean isTokenValid(String token, UserDetails userDetails) {
+        final String username = extractUsername(token);
+        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+    }
 
-<!-- JBoss provides these at runtime — scope=provided -->
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-tomcat</artifactId>
-    <scope>provided</scope>
-</dependency>
-<dependency>
-    <groupId>com.oracle.database.jdbc</groupId>
-    <artifactId>ojdbc8</artifactId>
-    <scope>provided</scope>
-</dependency>
-<dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <scope>provided</scope>
-</dependency>
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
+    }
+}
 ```
 
-## SSO Portal (Live)
+---
 
-| Property | Value |
-|---|---|
-| Portal URL | `https://10.243.200.80/ipa-portal` |
-| Login endpoint | `POST /api/auth/login` → JSON `{"username":"...","password":"..."}` |
-| Cookie name | `PORTAL_AUTH` (HttpOnly, SameSite=Lax) |
-| JWT algorithm | RS256 |
-| Test credentials | `admin` / `Mandiri@123` |
-| Current NRM role workaround | `app-code: SIRIP` in local profile (SIRIP:ADMIN → ROLE_ADMIN) until `NRM:ADMIN` is provisioned |
+## pom.xml Key Dependencies
 
-> Once `NRM:ADMIN` / `NRM:USER` are added in portal admin, revert `app-code` back to `NRM` in `application-local.yml`.
+```xml
+<!-- Spring Boot Web/JPA/Security/Validation -->
+<dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
+<dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-data-jpa</artifactId></dependency>
+<dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security</artifactId></dependency>
+<dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-validation</artifactId></dependency>
 
-## application.yml (default = UAT/Prod)
+<!-- JWT (JJWT 0.12.3) -->
+<dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-api</artifactId><version>0.12.3</version></dependency>
+<dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-impl</artifactId><version>0.12.3</version><scope>runtime</scope></dependency>
+<dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-jackson</artifactId><version>0.12.3</version><scope>runtime</scope></dependency>
+
+<!-- PostgreSQL -->
+<dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.7.1</version><scope>runtime</scope></dependency>
+
+<!-- Flyway (PostgreSQL only) -->
+<dependency><groupId>org.flywaydb</groupId><artifactId>flyway-core</artifactId></dependency>
+<dependency><groupId>org.flywaydb</groupId><artifactId>flyway-database-postgresql</artifactId></dependency>
+
+<!-- Tomcat (provided by JBoss di production) -->
+<dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-tomcat</artifactId><scope>provided</scope></dependency>
+```
+
+---
+
+## application.yml (aktual)
 
 ```yaml
 spring:
   application:
-    name: ipa-nrm
+    name: ipa-undanganku
   datasource:
-    jndi-name: java:/IpaNrmDS
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:undanganku_local}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
   jpa:
-    open-in-view: false
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   flyway:
     enabled: true
-    locations: classpath:db/migration/oracle
+    locations: classpath:db/migration/postgresql
   threads:
     virtual:
       enabled: true
 
 server:
   servlet:
-    context-path: /ipa-nrm
+    context-path: /ipa-undanganku
+  port: 8080
 
-mandiri:
-  portal:
-    base-url: https://portal.bankmandiri.co.id/ipa-portal
-    app-code: NRM
-    sso:
-      enabled: true
-portal:
-  auth:
-    cookie-name: PORTAL_AUTH
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 900000   # 15 menit
+  algorithm: HS256
 ```
 
-## NRM Domain Entities
+---
 
-Current known entities (add more as the migration plan evolves):
+## API Endpoint Inventory
+
+> Update tabel ini setiap kali controller berubah.
+
+### Auth (public)
+| Method | Path | Response |
+|---|---|---|
+| POST | `/api/auth/login` | `{token, expiresIn, user}` |
+| POST | `/api/auth/logout` | `204 No Content` |
+
+### Users (ROLE_ADMIN)
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/users` | Paginated list |
+
+---
+
+## Domain Entities
 
 | Entity | Table | Description |
 |---|---|---|
-| `DataSewa` | `data_sewa` | Branch office rental records |
-| `DetailDataSewa` | `detail_data_sewa` | Rental detail lines |
-| `JenisBangunan` | `jenis_bangunan` | Building type master data |
-| `History` | `nrm_history` | Workflow/change history |
-| `Dokumen` | `dokumen` | Document attachments |
-| `NrmTemplate` | `nrm_template` | Document templates |
-| `Reminder` | `reminder` | Scheduled reminders |
-| `Notification` | `notification` | User notifications |
-
-## API Endpoint Inventory (complete — 24 endpoints)
-
-> Last updated: 2026-04-29. Re-verify only when controllers change.
-
-### Auth model
-All protected endpoints require `Cookie: PORTAL_AUTH=<token>` (Portal SSO).  
-Public endpoints: `/api/public/**`, `/actuator/health`.
-
----
-
-### Public (no auth)
-
-| Method | Path | Response |
-|---|---|---|
-| GET | `/api/public/health` | `{"status":"UP"}` |
-| GET | `/api/public/portal-status` | `{"reachable":boolean}` |
-
----
-
-### Me
-
-| Method | Path | Auth | Response |
-|---|---|---|---|
-| GET | `/api/me` | authenticated | `{"username":string,"roles":[string]}` |
-
----
-
-### Dashboard
-
-| Method | Path | Auth | Response |
-|---|---|---|---|
-| GET | `/api/dashboard/summary` | authenticated | DashboardSummaryResponse (see below) |
-
-**DashboardSummaryResponse fields:**
-`totalDataSewa`, `totalDetailAktif`, `jatuhTempoMingguIni`, `jatuhTempo30Hari`,
-`statusDraft`, `statusPendingApproval`, `statusApproved`, `statusRejected`,
-`segeraJatuhTempo[]` (id, dataSewaId, namaCabang, kodeCabang, tglJatuhTempo, statusLabel)
-
----
-
-### Data Sewa (`/api/data-sewa`)
-
-| Method | Path | Auth | Notes |
-|---|---|---|---|
-| GET | `/api/data-sewa` | authenticated | Query: `search`, `page`(0), `size`(20), `sort`(id) |
-| GET | `/api/data-sewa/{id}` | authenticated | |
-| POST | `/api/data-sewa` | authenticated | TODO: restore hasRole(ADMIN) |
-| PUT | `/api/data-sewa/{id}` | authenticated | TODO: restore hasRole(ADMIN) |
-| DELETE | `/api/data-sewa/{id}` | authenticated | 204 No Content; TODO: restore hasRole(ADMIN) |
-
-**DataSewaRequest body:**
-```json
-{
-  "branchOfficeId": 1001,
-  "namaCabang": "Cabang Jakarta Pusat",
-  "kodeCabang": "JKT-001",
-  "regionId": 1,
-  "areaId": 2,
-  "alamat": "Jl. Sudirman No. 1, Jakarta Pusat",
-  "kodePos": "10220",
-  "noTelp": "021-5551234",
-  "ijinBi": "BI-2024-001"
-}
-```
-
----
-
-### Detail Data Sewa (`/api/detail-data-sewa`)
-
-| Method | Path | Auth | Notes |
-|---|---|---|---|
-| GET | `/api/detail-data-sewa` | authenticated | Query: `page`(0), `size`(20), `sort`(id) |
-| GET | `/api/detail-data-sewa/by-data-sewa/{dataSewaId}` | authenticated | Returns List (not paged) |
-| GET | `/api/detail-data-sewa/{id}` | authenticated | |
-| POST | `/api/detail-data-sewa` | authenticated | TODO: restore hasRole(ADMIN) |
-| PUT | `/api/detail-data-sewa/{id}` | authenticated | TODO: restore hasRole(ADMIN) |
-| POST | `/api/detail-data-sewa/{id}/approve` | authenticated | TODO: restore hasRole(ADMIN) |
-| POST | `/api/detail-data-sewa/{id}/reject` | authenticated | TODO: restore hasRole(ADMIN) |
-| DELETE | `/api/detail-data-sewa/{id}` | authenticated | 204 No Content; TODO: restore hasRole(ADMIN) |
-
-**DetailDataSewaRequest body:**
-```json
-{
-  "dataSewaId": 1,
-  "statusSewaId": 1,
-  "tglAwalSewa": "2024-01-01",
-  "tglJatuhTempo": "2025-01-01",
-  "luasTanah": 250,
-  "luasBangunan": 180,
-  "pemilik": "PT. Properti Mandiri",
-  "jenisBangunanId": 1,
-  "kewenanganId": 1,
-  "namaPic": "Budi Santoso",
-  "emailPic": "budi.santoso@bankmandiri.co.id",
-  "nilaiSewaSebelumPerpanjangan": 150000000.00,
-  "nilaiSewaSetelahPerpanjangan": 165000000.00,
-  "nilaiServiceSebelumPerpanjangan": 10000000.00,
-  "nilaiServiceSetelahPerpanjangan": 11000000.00,
-  "biayaSewaLainnya": 5000000.00,
-  "nilaiTotalSewaTahun": 176000000.00,
-  "nilaiTotalSewaPerPeriodeSewa": 176000000.00
-}
-```
-
----
-
-### Master Data — Jenis Bangunan (`/api/master/jenis-bangunan`)
-
-| Method | Path | Auth | Notes |
-|---|---|---|---|
-| GET | `/api/master/jenis-bangunan` | authenticated | Returns List |
-| POST | `/api/master/jenis-bangunan` | authenticated | TODO: restore hasRole(ADMIN) |
-| DELETE | `/api/master/jenis-bangunan/{id}` | authenticated | 204 No Content; TODO: restore hasRole(ADMIN) |
-
-**JenisBangunan body:** `{"code":"GDG","nama":"Gedung Perkantoran"}`
-
----
-
-### Master Data — Reminder (`/api/master/reminder`)
-
-| Method | Path | Auth | Notes |
-|---|---|---|---|
-| GET | `/api/master/reminder` | authenticated | Returns List |
-| POST | `/api/master/reminder` | authenticated | TODO: restore hasRole(ADMIN) |
-
-**Reminder body:**
-```json
-{
-  "nama": "Reminder 30 Hari",
-  "jenisNotifId": 1,
-  "jmlHari": 30,
-  "jenisReminderId": 1,
-  "isActive": true,
-  "templateId": 1,
-  "keterangan": "Notifikasi otomatis 30 hari sebelum jatuh tempo",
-  "statusOrderId": 1
-}
-```
-
----
-
-### Master Data — Template (`/api/master/template`)
-
-| Method | Path | Auth | Notes |
-|---|---|---|---|
-| GET | `/api/master/template` | authenticated | Returns List |
-| POST | `/api/master/template` | authenticated | TODO: restore hasRole(ADMIN) |
-
-**NrmTemplate body:**
-```json
-{
-  "subjek": "Notifikasi Jatuh Tempo Sewa",
-  "isi": "Yth. Tim NRM,\n\nKontrak sewa cabang {{namaCabang}} ({{kodeCabang}}) jatuh tempo {{tglJatuhTempo}}.\n\nSalam,\nSistem NRM",
-  "jenisReminderId": 1,
-  "isActive": true
-}
-```
-
----
-
-### Endpoint count summary
-| Controller | GET | POST | PUT | DELETE | Total |
-|---|---|---|---|---|---|
-| HealthController | 2 | - | - | - | 2 |
-| MeController | 1 | - | - | - | 1 |
-| DashboardController | 1 | - | - | - | 1 |
-| DataSewaController | 2 | 1 | 1 | 1 | 5 |
-| DetailDataSewaController | 3 | 3 | 1 | 1 | 8 |
-| MasterDataController | 3 | 3 | - | 2 | 8 |
-| **Total** | **12** | **7** | **2** | **4** | **24** |
-
-## SSO, SSL & Local Dev
-
-> Detail lengkap ada di lesson. Baca [`sso-security-local-dev.md`](../../backend/lessons/sso-security-local-dev.md) untuk:
-> - Local dev workflow (login portal → jalankan backend → verifikasi)
-> - Debug tree untuk 403 Forbidden
-> - SSL trust store setup (`cacerts-nrm`)
-> - Architecture rules: split-brain `@PreAuthorize`, role mapping via `app-code`
+| `User` | `users` | Akun pengguna aplikasi |
+| `Role` | `roles` | ROLE_ADMIN, ROLE_USER |
+| _(tambahkan seiring perkembangan domain)_ | | |
 
 ---
 
 ## JBoss EAP 8 Checklist
 
-- `<packaging>war</packaging>` in pom.xml
+- `<packaging>war</packaging>` di pom.xml
 - `ServletInitializer extends SpringBootServletInitializer`
-- JDBC driver `<scope>provided</scope>`
-- `WEB-INF/jboss-deployment-structure.xml` to exclude conflicting JBoss modules
-- `maven-compiler-plugin` with `<parameters>true</parameters>`
+- JDBC driver `<scope>runtime</scope>` (untuk local), `<scope>provided</scope>` (untuk production JBoss)
+- `WEB-INF/jboss-deployment-structure.xml` untuk exclude modul JBoss yang konflik
+- `maven-compiler-plugin` dengan `<parameters>true</parameters>`
 - Virtual threads: `spring.threads.virtual.enabled: true`
+
+---
 
 ## Testing Strategy
 
 - Unit tests: mock repositories, test service logic
-- Integration tests: use `@SpringBootTest` with embedded H2 (not mocking the DB) 
-- `@WithMockUser(roles = "ADMIN")` for security tests
-- Verify soft-delete: deleted rows must not appear in query results
+- Integration tests: `@SpringBootTest` dengan H2 atau Testcontainers (bukan mock DB)
+- `@WithMockUser(roles = "ADMIN")` untuk security tests
+- Verifikasi soft-delete: baris yang di-delete tidak boleh muncul di query results

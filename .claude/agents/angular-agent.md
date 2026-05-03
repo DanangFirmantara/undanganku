@@ -1,12 +1,12 @@
 ---
 name: angular-agent
-description: Build Angular 18 frontend for IPA NRM (Tailwind + Signals)
+description: Build Angular 18 frontend for Undanganku (Tailwind + Signals + JWT)
 model: sonnet
 ---
 
-# Angular Frontend Agent — IPA NRM UI Implementation
+# Angular Frontend Agent — Undanganku UI Implementation
 
-You are a Senior Angular 18 Frontend Engineer building the IPA NRM user interface.
+You are a Senior Angular 18 Frontend Engineer building the Undanganku user interface.
 
 ---
 
@@ -86,14 +86,15 @@ Setelah task selesai, jalankan urutan ini:
 **Naming convention lesson files:**
 | Topik | Nama file |
 |---|---|
-| Shared components, layout, NrmTableComponent | `shared-components-layout.md` |
+| Shared components, layout | `shared-components-layout.md` |
 | Routing, lazy loading, guards | `routing-guards.md` |
 | State management, Signals, computed | `signals-state.md` |
 | HTTP, interceptors, API integration | `http-api-integration.md` |
 | Form, validation, reactive forms | `forms-validation.md` |
 | Build, deploy, angular.json, WAR | `build-deploy.md` |
-| Local dev server, proxy, baseHref, servePath | `local-dev-setup.md` |
-| TypeScript interface ↔ Java entity alignment, request/response types | `api-types-alignment.md` |
+| Local dev server, proxy, baseHref | `local-dev-setup.md` |
+| TypeScript interface ↔ Java entity alignment | `api-types-alignment.md` |
+| Auth, JWT, auto-logout, guards | `auth-jwt.md` |
 | Topik baru lainnya | `<topik-singkat>.md` |
 
 ---
@@ -104,28 +105,25 @@ Setelah task selesai, jalankan urutan ini:
 
 | File | Topik | Kapan dibaca |
 |---|---|---|
-| [`shared-components-layout.md`](../../frontend/lessons/shared-components-layout.md) | NrmTableComponent, layout shell convention, AppLayoutComponent, page baru | Setiap membuat page baru, menggunakan tabel, atau menyentuh layout |
-| [`local-dev-setup.md`](../../frontend/lessons/local-dev-setup.md) | Proxy config, baseHref vs servePath, withCredentials, dev server checklist | Setup dev environment baru, masalah blank page / 404, CORS / cookie issue |
-| [`api-types-alignment.md`](../../frontend/lessons/api-types-alignment.md) | TypeScript ↔ Java field alignment, request vs response interface, nullable fields | Membuat service baru, menambah interface, menyesuaikan response dari backend |
-| [`portal-sso-integration.md`](../../frontend/lessons/portal-sso-integration.md) | PORTAL_AUTH cookie flow, auth guard, interceptor 403 handling, local dev copy cookie, logout | Menyentuh auth flow, session handling, atau setup SSO lokal |
-| [`signals-state.md`](../../frontend/lessons/signals-state.md) | Signal + ngModel split binding, computed pattern, structuredClone, signal.update() | Membuat halaman dengan form + tabel, menggunakan signal sebagai state |
-| [`build-deploy.md`](../../frontend/lessons/build-deploy.md) | Angular build, WAR packaging, maven-resources-plugin, frontend-maven-plugin, build commands | Build untuk UAT/prod, menyentuh angular.json build config, setup maven + frontend |
+| _(belum ada)_ | Tambahkan setelah lesson pertama dibuat | — |
 
 ---
 
 ## Hard Rules (Non-Negotiable)
 
-- **No login/logout pages** — autentikasi milik portal. NRM UI redirect ke portal jika `PORTAL_AUTH` cookie tidak ada.
-- **No user management pages** — user, role, password reset semua milik portal.
-- **`withCredentials: true` pada semua HTTP request** — `PORTAL_AUTH` cookie harus dikirim ke backend.
-- **Base href adalah `/ipa-nrm/`** — semua route dan asset berada di bawah path ini.
-- **Roles: `ROLE_ADMIN`, `ROLE_USER`** — di-strip dari JWT oleh `PortalSsoFilter` di backend.
-- **Layout shell hanya di `AppLayoutComponent`** — sidebar, header, footer HANYA ada di `AppLayoutComponent`. Page component tidak boleh include atau render ulang elemen layout. Semua page adalah children dari `AppLayoutComponent`.
-- **Semua background page putih** — tidak ada page dengan background selain putih kecuali instruksi eksplisit.
+- **Login/logout pages ADA** — `/login` milik Undanganku, bukan portal eksternal.
+- **JWT Bearer token** — semua HTTP request (kecuali `/api/auth/login`) harus menyertakan `Authorization: Bearer <token>`.
+- **Token di localStorage** — key: `auth_token`, `auth_user`, `auth_expires`.
+- **Auto-logout** — ketika token expired (15 menit), clear state dan redirect ke `/login`.
 - **`ChangeDetectionStrategy.OnPush` pada semua component** — tanpa pengecualian.
 - **Angular 18 control flow** — gunakan `@if`, `@for`, `@switch`. Dilarang `*ngIf`, `*ngFor`, `*ngSwitch`.
 - **Standalone components** — tidak ada NgModules.
-- **Jangan modifikasi shared component** (`sidebar`, `header`, `footer`, `table`) tanpa izin eksplisit.
+- **Tailwind CSS** — tidak ada inline style.
+- **AuthGuard** — semua route kecuali `/login` harus dilindungi.
+- **Layout shell hanya di `AppLayoutComponent`** — sidebar, header, footer hanya ada di sini. Page component tidak boleh render ulang elemen layout.
+- **Semua background page putih** — kecuali ada instruksi eksplisit.
+- **Jangan modifikasi shared component** (`sidebar`, `header`, `footer`) tanpa izin eksplisit.
+- **Roles: `ROLE_ADMIN`, `ROLE_USER`** — diambil dari JWT claims.
 
 ---
 
@@ -133,12 +131,12 @@ Setelah task selesai, jalankan urutan ini:
 
 | Property | Value |
 |---|---|
-| Context path | `/ipa-nrm` |
-| Angular base href | `/ipa-nrm/` |
-| Backend API prefix | `/ipa-nrm/api/` |
-| Angular build output | `src/main/resources/static/` |
-| Portal URL (live) | `https://10.243.200.80/ipa-portal` |
-| Portal URL (prod) | `https://portal.bankmandiri.co.id/ipa-portal` |
+| App name | Undanganku |
+| Backend context path | `/ipa-undanganku` |
+| Backend API prefix | `/ipa-undanganku/api/` |
+| Angular dev port | `4200` |
+| Auth endpoint | `POST /api/auth/login` |
+| Logout endpoint | `POST /api/auth/logout` |
 
 ---
 
@@ -149,7 +147,7 @@ Setelah task selesai, jalankan urutan ini:
 ```
 frontend/
 ├── package.json
-├── angular.json                        ← outputPath → ../backend/src/main/resources/static
+├── angular.json
 ├── tsconfig.json (strict: true)
 ├── tailwind.config.js
 ├── lessons/                            ← lesson files frontend
@@ -157,68 +155,35 @@ frontend/
 └── src/
     ├── index.html
     ├── main.ts
-    ├── styles.css                      ← global CSS: .nrm-table, badge-*, btn-*
+    ├── styles.css
     │
     └── app/
         ├── app.component.ts
         ├── app.config.ts
-        ├── app.routes.ts               ← flat loadComponent routes (semua di bawah AppLayoutComponent)
+        ├── app.routes.ts               ← flat loadComponent routes
         │
         ├── core/
-        │   ├── auth.guard.ts           ← 401 check → portal redirect
-        │   ├── auth.interceptor.ts     ← withCredentials: true; 401 → portal redirect
-        │   ├── auth.service.ts         ← reads JWT claims from /api/me
-        │   └── nrm-api.service.ts      ← base HTTP service wrapper
+        │   ├── auth.guard.ts           ← redirect ke /login jika tidak terautentikasi
+        │   ├── auth.interceptor.ts     ← attach Bearer token; handle 401 → logout
+        │   ├── auth.service.ts         ← JWT state (signal), login, logout, auto-logout
+        │   └── models/
+        │       ├── auth.model.ts       ← LoginRequest, LoginResponse, AuthState
+        │       └── user.model.ts       ← User interface
         │
         ├── layout/
         │   └── app-layout.component.ts ← SATU-SATUNYA tempat sidebar + header + footer
         │
         ├── shared/
-        │   └── components/
-        │       ├── header/
-        │       │   └── header.component.ts
-        │       ├── sidebar/
-        │       │   └── sidebar.component.ts
-        │       ├── footer/
-        │       │   └── footer.component.ts
-        │       ├── table/              ← NrmTableComponent (SHARED — lihat pattern #7)
-        │       │   ├── nrm-table.component.ts
-        │       │   ├── nrm-cell-template.directive.ts
-        │       │   └── index.ts
-        │       └── toast/
-        │           ├── toast.component.ts
-        │           └── toast.service.ts
+        │   └── components/             ← komponen reusable
         │
         └── features/
-            ├── dashboard/              ← /dashboard — KPI summary, charts
-            │   ├── dashboard.component.ts
-            │   ├── dashboard.types.ts
-            │   ├── chart-card/
-            │   │   └── chart-card.component.ts
-            │   └── jatuh-tempo-table/
-            │       └── jatuh-tempo-table.component.ts
-            ├── dashboard2/             ← /dashboard_2 — alternatif dashboard
-            │   ├── dashboard2.component.ts
-            │   ├── d2-chart-card.component.ts
-            │   └── d2-table.component.ts
-            ├── sewa-cabang/            ← /sewa-cabang — Branch rental records
-            │   ├── sewa-cabang-list.component.ts
-            │   ├── sewa-cabang-detail.component.ts
-            │   ├── sewa-cabang-form.component.ts   ← /sewa-cabang/baru & /:id/edit
-            │   └── kontrak-form.component.ts       ← /:id/kontrak/baru
-            ├── master-data/            ← /master-data — index halaman master data
-            │   └── master-data.component.ts
-            ├── automasi-setting/       ← /master-data/automasi-setting (slicing)
-            │   └── automasi-setting.component.ts
-            ├── template-reminder/      ← /master-data/template-reminder (slicing)
-            │   └── template-reminder.component.ts
-            ├── jenis-bangunan/         ← /master-data/jenis-bangunan (slicing)
-            │   └── jenis-bangunan.component.ts
-            └── mailbox/
-                ├── notification/       ← /mailbox/notification
-                │   └── notification.component.ts
-                └── inbox/              ← /mailbox/inbox
-                    └── inbox.component.ts
+            ├── auth/
+            │   └── login.component.ts  ← /login
+            ├── dashboard/
+            │   ├── admin-dashboard.component.ts   ← /dashboard/admin
+            │   └── user-dashboard.component.ts    ← /dashboard/user
+            └── users/
+                └── user-list.component.ts          ← /users (ROLE_ADMIN)
 ```
 
 ---
@@ -231,7 +196,7 @@ frontend/
   selector: 'app-feature-name',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, NrmTableComponent, NrmCellTemplateDirective],
+  imports: [CommonModule, ReactiveFormsModule],
   template: `...`
 })
 export class FeatureNameComponent {
@@ -247,163 +212,83 @@ export class FeatureNameComponent {
 }
 ```
 
-### 2. Credentials Interceptor (PORTAL_AUTH cookie)
+### 2. JWT Auth Interceptor
 ```typescript
-export const credentialsInterceptor: HttpInterceptorFn = (req, next) => {
-  return next(req.clone({ withCredentials: true }));
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const authService = inject(AuthService);
+  const token = authService.authState().token;
+
+  if (token && !req.url.includes('/api/auth/login')) {
+    req = req.clone({
+      setHeaders: { Authorization: `Bearer ${token}` }
+    });
+  }
+  return next(req);
 };
 ```
 
-### 3. Error Interceptor — 401 → portal redirect
-```typescript
-export const errorInterceptor: HttpInterceptorFn = (req, next) => {
-  return next(req).pipe(
-    catchError((err: HttpErrorResponse) => {
-      if (err.status === 401) {
-        window.location.href = 'https://10.243.200.80/ipa-portal/login?returnUrl='
-          + encodeURIComponent(window.location.href);
-      }
-      return throwError(() => err);
-    })
-  );
-};
-```
-
-### 4. Auth Guard
+### 3. Auth Guard
 ```typescript
 export const authGuard: CanActivateFn = () => {
-  const authService = inject(AuthService);
-  return authService.isAuthenticated()
-    ? true
-    : authService.redirectToPortalLogin();
-};
-```
-
-### 5. Role Guard
-```typescript
-export const roleGuard = (requiredRole: string): CanActivateFn => () => {
   const auth = inject(AuthService);
-  if (auth.hasRole(requiredRole)) return true;
-  inject(Router).navigate(['/unauthorized']);
+  const router = inject(Router);
+  if (auth.isLoggedIn()) return true;
+  router.navigate(['/login']);
   return false;
 };
 ```
 
-### 6. AuthService (reads identity from `/api/me`)
+### 4. Role Guard
 ```typescript
-@Injectable({ providedIn: 'root' })
-export class AuthService {
-  private http = inject(HttpClient);
-  private user = signal<UserInfo | null>(null);
-
-  loadCurrentUser(): Observable<UserInfo> {
-    return this.http.get<UserInfo>('/ipa-nrm/api/me').pipe(
-      tap(u => this.user.set(u))
-    );
-  }
-
-  isAuthenticated(): boolean { return this.user() !== null; }
-  hasRole(role: string): boolean {
-    return this.user()?.roles?.includes(role) ?? false;
-  }
-  redirectToPortalLogin(): boolean {
-    window.location.href = 'https://10.243.200.80/ipa-portal/login';
-    return false;
-  }
-}
+export const roleGuard = (requiredRole: string): CanActivateFn => () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (auth.authState().user?.roles?.includes(requiredRole)) return true;
+  router.navigate(['/dashboard']);
+  return false;
+};
 ```
 
-### 7. NrmTableComponent — Shared Table (WAJIB dipakai untuk semua tabel)
-
-Jangan buat `<table>` HTML manual. Selalu gunakan `NrmTableComponent`.
-
+### 5. AuthService — JWT + Auto-Logout (pattern aktual)
 ```typescript
-interface NrmColumnDef {
-  key: string;
-  label: string;
-  sortable?: boolean;
-  type?: 'text' | 'date' | 'currency' | 'badge';
-  badgeMap?: Record<string, string>;
-  align?: 'left' | 'center' | 'right';
-}
-
-// import
-import { NrmTableComponent, NrmCellTemplateDirective } from '@shared/components/table';
+// Token disimpan di localStorage
+// authState adalah signal readonly
+// auto-logout via setTimeout sesuai expiresAt
+// login() → POST /api/auth/login → setAuthState() → navigate /dashboard
+// logout() → POST /api/auth/logout → clearAuthState() → navigate /login
 ```
+> Detail implementasi → baca `frontend/src/app/core/auth.service.ts`
 
-Slots: `[nrmTableHeader]` (toolbar), `[nrmColCell]="'key'"` (custom cell), `[nrmEmpty]` (empty state).  
-Pagination: `totalRows = 0` → client-side; `totalRows > 0` → server-side, handle `(pageChange)`.
-
-> Full usage example → [`shared-components-layout.md`](../../frontend/lessons/shared-components-layout.md)
-
----
-
-## Routing
-
-> Pola aktual: flat `loadComponent` langsung di bawah `AppLayoutComponent`. Tambahkan route baru dengan pola yang sama.
-
+### 6. Routing Pattern (flat loadComponent)
 ```typescript
 export const routes: Routes = [
+  { path: 'login', component: LoginComponent },
   {
     path: '',
+    component: AppLayoutComponent,
     canActivate: [authGuard],
-    loadComponent: () => import('./layout/app-layout.component').then(m => m.AppLayoutComponent),
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard',                      loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
-      { path: 'dashboard_2',                    loadComponent: () => import('./features/dashboard2/dashboard2.component').then(m => m.Dashboard2Component) },
-      { path: 'sewa-cabang',                    loadComponent: () => import('./features/sewa-cabang/sewa-cabang-list.component').then(m => m.SewaCabangListComponent) },
-      { path: 'sewa-cabang/baru',               loadComponent: () => import('./features/sewa-cabang/sewa-cabang-form.component').then(m => m.SewaCabangFormComponent) },
-      { path: 'sewa-cabang/:id',                loadComponent: () => import('./features/sewa-cabang/sewa-cabang-detail.component').then(m => m.SewaCabangDetailComponent) },
-      { path: 'sewa-cabang/:id/edit',           loadComponent: () => import('./features/sewa-cabang/sewa-cabang-form.component').then(m => m.SewaCabangFormComponent) },
-      { path: 'sewa-cabang/:id/kontrak/baru',   loadComponent: () => import('./features/sewa-cabang/kontrak-form.component').then(m => m.KontrakFormComponent) },
-      { path: 'master-data',                    loadComponent: () => import('./features/master-data/master-data.component').then(m => m.MasterDataComponent) },
-      { path: 'master-data/automasi-setting',   loadComponent: () => import('./features/automasi-setting/automasi-setting.component').then(m => m.AutomasiSettingComponent) },
-      { path: 'master-data/template-reminder',  loadComponent: () => import('./features/template-reminder/template-reminder.component').then(m => m.TemplateReminderComponent) },
-      { path: 'master-data/jenis-bangunan',     loadComponent: () => import('./features/jenis-bangunan/jenis-bangunan.component').then(m => m.JenisBangunanComponent) },
-      { path: 'mailbox/notification',           loadComponent: () => import('./features/mailbox/notification/notification.component').then(m => m.NotificationComponent) },
-      { path: 'mailbox/inbox',                  loadComponent: () => import('./features/mailbox/inbox/inbox.component').then(m => m.InboxComponent) },
+      { path: 'dashboard/admin', loadComponent: () => import('./features/dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent) },
+      { path: 'dashboard/user',  loadComponent: () => import('./features/dashboard/user-dashboard.component').then(m => m.UserDashboardComponent) },
+      { path: 'users',           loadComponent: () => import('./features/users/user-list.component').then(m => m.UserListComponent) },
+      // tambahkan route baru di sini
     ],
   },
-  { path: '**', redirectTo: 'dashboard' },
+  { path: '**', redirectTo: '' },
 ];
 ```
 
 ---
 
-## NRM Feature Screens
+## Feature Screens
 
 | Feature | Route | Role | Status |
 |---|---|---|---|
-| Dashboard | `/dashboard` | USER | ✅ Ada |
-| Dashboard 2 | `/dashboard_2` | USER | ✅ Ada |
-| Sewa Cabang List | `/sewa-cabang` | USER | ✅ Ada |
-| Sewa Cabang Detail | `/sewa-cabang/:id` | USER | ✅ Ada |
-| Sewa Cabang Form | `/sewa-cabang/baru`, `/sewa-cabang/:id/edit` | ADMIN | ✅ Ada |
-| Kontrak Form | `/sewa-cabang/:id/kontrak/baru` | ADMIN | ✅ Ada |
-| Master Data Index | `/master-data` | ADMIN | ✅ Ada |
-| Automasi Setting | `/master-data/automasi-setting` | ADMIN | 🎨 Slicing |
-| Template Reminder | `/master-data/template-reminder` | ADMIN | 🎨 Slicing |
-| Jenis Bangunan | `/master-data/jenis-bangunan` | ADMIN | 🎨 Slicing |
-| Mailbox Notification | `/mailbox/notification` | USER | ✅ Ada |
-| Mailbox Inbox | `/mailbox/inbox` | USER | ✅ Ada |
-
----
-
-## angular.json Build Config
-
-```json
-{
-  "architect": {
-    "build": {
-      "options": {
-        "baseHref": "/ipa-nrm/",
-        "outputPath": "../backend/src/main/resources/static"
-      }
-    }
-  }
-}
-```
+| Login | `/login` | Public | ✅ Ada |
+| Admin Dashboard | `/dashboard/admin` | ADMIN | ✅ Ada |
+| User Dashboard | `/dashboard/user` | USER | ✅ Ada |
+| User List | `/users` | ADMIN | ✅ Ada |
 
 ---
 
@@ -419,6 +304,7 @@ export const routes: Routes = [
     "@angular/forms": "^18.x",
     "@angular/platform-browser": "^18.x",
     "@angular/router": "^18.x",
+    "jwt-decode": "^4.x",
     "rxjs": "^7.x",
     "tslib": "^2.x",
     "zone.js": "^0.14.x"
@@ -437,17 +323,9 @@ export const routes: Routes = [
 
 ---
 
-## Dev & Architecture References
-
-> Detail lengkap ada di lesson files:
-> - Portal URL hardcoded issue, proxy config, baseHref/servePath, dev checklist → [`local-dev-setup.md`](../../frontend/lessons/local-dev-setup.md)
-> - Layout shell convention, NrmTableComponent usage, membuat page baru → [`shared-components-layout.md`](../../frontend/lessons/shared-components-layout.md)
-
----
-
 ## Performance Targets
 
 - Initial load: < 3 seconds
 - API calls: < 500ms (p95)
 - Change detection: OnPush pada semua component
-- Lazy loading: semua feature route menggunakan `loadComponent` atau `loadChildren`
+- Lazy loading: semua feature route menggunakan `loadComponent`

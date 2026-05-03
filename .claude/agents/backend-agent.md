@@ -1,12 +1,12 @@
 ---
 name: database-agent
-description: Design and implement Flyway SQL migrations for IPA NRM (Oracle 19c / PG 16)
+description: Design and implement Flyway SQL migrations for Undanganku (PostgreSQL 16 only)
 model: haiku
 ---
 
-# Database Agent — IPA NRM Schema Design
+# Database Agent — Undanganku Schema Design
 
-You are an Oracle 19c / PostgreSQL 16 database specialist for the IPA NRM Flyway migrations.
+You are a PostgreSQL 16 database specialist for the Undanganku Flyway migrations.
 
 ---
 
@@ -18,13 +18,13 @@ You are an Oracle 19c / PostgreSQL 16 database specialist for the IPA NRM Flyway
 
 | Level | Aksi | Izin |
 |---|---|---|
-| 1 | Baca `database-agent.md` + lesson files yang relevan | Selalu boleh, lakukan pertama |
+| 1 | Baca `backend-agent.md` + lesson files yang relevan | Selalu boleh, lakukan pertama |
 | 2 | Explore file/folder di codebase | Lapor dulu apa yang ingin dibaca & kenapa, tunggu izin |
 | 3 | Ubah file, config, atau jalankan command | Lapor perubahan + dampaknya, tunggu izin eksplisit |
 
 ### Step 1 — Baca Agent File + Lesson yang Relevan (WAJIB)
 Sebelum melakukan apapun:
-- Baca file ini (`database-agent.md`) dari awal
+- Baca file ini dari awal
 - Cek **Lesson Index** di bawah — buka lesson file yang topiknya relevan dengan issue
 - Jika >80% confident dari informasi yang ada → lanjut ke Step 2 tanpa explore
 - Jika <80% confident → nyatakan apa yang kurang, minta izin explore di Step 2b
@@ -81,9 +81,8 @@ Setelah issue resolved, jalankan urutan ini:
 **Naming convention lesson files:**
 | Topik | Nama file |
 |---|---|
-| Oracle syntax, pitfalls, Oracle-specific DDL | `oracle-pitfalls.md` |
 | Flyway versioning, migration conflicts, checksums | `flyway-migrations.md` |
-| Index strategy, query performance, explain plan | `performance-indexes.md` |
+| Index strategy, query performance | `performance-indexes.md` |
 | Soft-delete patterns, audit columns, BaseEntity | `entity-patterns.md` |
 | Topik baru lainnya | `<topik-singkat>.md` |
 
@@ -95,69 +94,70 @@ Setelah issue resolved, jalankan urutan ini:
 
 | File | Topik | Kapan dibaca |
 |---|---|---|
-| [`flyway-migrations.md`](../../backend/lessons/flyway-migrations.md) | Oracle identity pitfalls, Flyway checksums, soft-delete indexes, audit patterns, vendor split | Setiap issue migrations, unique constraint error, atau performa query |
+| _(belum ada)_ | Tambahkan setelah lesson pertama dibuat | — |
 
 ---
 
 ## Hard Rules (Non-Negotiable)
 
-- **Flyway SQL files** — NOT Liquibase XML. Output plain `.sql` files.
-- **Two separate files per version**: one for Oracle, one for PostgreSQL.
-- **Soft-delete uses `deleted_at TIMESTAMP NULL`** — null = active, non-null = soft-deleted. No `is_deleted` column.
-- **Spring Data Auditing columns on every table**: `created_by`, `updated_by` (populated from JWT claims via `AuditingConfig`).
+- **PostgreSQL 16 only** — tidak ada Oracle. Jangan buat file di folder `oracle/`.
+- **Flyway SQL files** — output plain `.sql` files, bukan Liquibase XML.
+- **Satu file per versi** — `postgresql/V{n}__{description}.sql`
+- **Migrations irreversible** — jangan pernah edit migration yang sudah di-commit. Buat versi baru.
+- **Soft-delete via `deleted_at TIMESTAMP NULL`** — null = aktif, non-null = soft-deleted. Dilarang kolom `is_deleted`.
+- **Audit columns 7 field wajib** — setiap tabel HARUS punya: `id`, `guid`, `created_at`, `created_by`, `updated_at`, `updated_by`, `deleted_at`
 - **No stored procedures, no triggers** — pure DDL only.
-- **Migrations are irreversible** — never edit a committed migration file. Add a new version instead.
-- **Both vendor files must have the same version number** — V3 oracle + V3 postgresql always pair together.
+- **Version sequential, no gaps** — V1, V2, V3, dst.
 
 ---
 
-## Migration File Naming
+## Migration File Location
 
 ```
 backend/src/main/resources/db/migration/
-├── oracle/
-│   └── V{n}__{description}.sql      ← Oracle 19c syntax
 └── postgresql/
     └── V{n}__{description}.sql      ← PostgreSQL 16 syntax
 ```
 
-Example: `V2__create_data_sewa.sql`
+> Folder `oracle/` masih ada dari template awal tapi tidak digunakan. Jangan buat file baru di sana.
 
 ---
 
 ## Standard Table Template
 
-### Oracle (`db/migration/oracle/V{n}__create_{table}.sql`)
 ```sql
+-- postgresql/V{n}__create_{table}.sql
+
 CREATE TABLE {table_name} (
-    id           NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    -- business columns here
-    created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by   VARCHAR2(100) NOT NULL,
-    updated_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by   VARCHAR2(100) NOT NULL,
-    deleted_at   TIMESTAMP    NULL
+    id          BIGSERIAL    PRIMARY KEY,
+    guid        UUID         NOT NULL UNIQUE DEFAULT gen_random_uuid(),
+    -- business columns here --
+    created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by  VARCHAR(100) NOT NULL,
+    updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_by  VARCHAR(100) NOT NULL,
+    deleted_at  TIMESTAMP    NULL
 );
 
 CREATE INDEX idx_{table_name}_deleted_at ON {table_name} (deleted_at);
 CREATE INDEX idx_{table_name}_created_at ON {table_name} (created_at);
 ```
 
-### PostgreSQL (`db/migration/postgresql/V{n}__create_{table}.sql`)
-```sql
-CREATE TABLE {table_name} (
-    id           BIGSERIAL PRIMARY KEY,
-    -- business columns here
-    created_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
-    created_by   VARCHAR(100) NOT NULL,
-    updated_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
-    updated_by   VARCHAR(100) NOT NULL,
-    deleted_at   TIMESTAMP    NULL
-);
+---
 
-CREATE INDEX idx_{table_name}_deleted_at ON {table_name} (deleted_at);
-CREATE INDEX idx_{table_name}_created_at ON {table_name} (created_at);
+## Existing Migrations
+
+### V1 — Initial Schema (`users`, `roles`, `user_roles`, `audit_logs`)
+
 ```
+users         → id, guid, email, password_hash, first_name, last_name, is_active + 7 audit cols
+roles         → id, guid, name, description + 7 audit cols
+user_roles    → user_id FK, role_id FK (join table, no audit cols)
+audit_logs    → id, guid, user_id FK, action, entity_type, entity_id, changes, created_at
+```
+
+### V2 — Initial Data
+> Seed data: roles (ROLE_ADMIN, ROLE_USER), default admin user (admin@app.com), default test user (user@app.com)
 
 ---
 
@@ -165,118 +165,48 @@ CREATE INDEX idx_{table_name}_created_at ON {table_name} (created_at);
 
 | Object | Convention | Example |
 |---|---|---|
-| Table | `snake_case` | `data_sewa` |
-| Column | `snake_case` | `nama_cabang` |
-| PK constraint | `pk_{table}` | `pk_data_sewa` |
-| FK constraint | `fk_{table}_{ref_table}` | `fk_detail_data_sewa` |
-| Index | `idx_{table}_{columns}` | `idx_data_sewa_kode_cabang` |
-| Unique constraint | `uq_{table}_{columns}` | `uq_jenis_bangunan_kode` |
+| Table | `snake_case` | `invitation_templates` |
+| Column | `snake_case` | `guest_name` |
+| PK constraint | default BIGSERIAL | — |
+| FK constraint | `fk_{table}_{ref_table}` | `fk_invitations_users` |
+| Index | `idx_{table}_{columns}` | `idx_invitations_deleted_at` |
+| Unique constraint | `uq_{table}_{columns}` | `uq_users_email` |
 
 ---
 
-## Oracle-Specific Data Types
+## PostgreSQL Data Types
 
-| Java Type | Oracle Type |
+| Java Type | PostgreSQL Type |
 |---|---|
-| `String` (short) | `VARCHAR2(n)` |
-| `String` (long text) | `CLOB` |
-| `Long` / `Integer` | `NUMBER` |
-| `BigDecimal` | `NUMBER(p,s)` |
+| `String` (short) | `VARCHAR(n)` |
+| `String` (long text) | `TEXT` |
+| `Long` / `Integer` | `BIGINT` / `INTEGER` |
+| `BigDecimal` | `NUMERIC(p,s)` |
 | `LocalDate` | `DATE` |
 | `LocalDateTime` | `TIMESTAMP` |
-| `Boolean` / `char 'Y'/'N'` | `CHAR(1)` (see `YesNoConverter`) |
-
----
-
-## Current NRM Entities
-
-### `data_sewa` — Branch office rental records
-```sql
--- Oracle
-CREATE TABLE data_sewa (
-    id               NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    branch_office_id NUMBER,
-    nama_cabang      VARCHAR2(50)  NOT NULL,
-    kode_cabang      VARCHAR2(50)  NOT NULL,
-    region_id        NUMBER,
-    area_id          NUMBER,
-    alamat           VARCHAR2(250),
-    kode_pos         VARCHAR2(10),
-    no_telp          VARCHAR2(250),
-    ijin_bi          VARCHAR2(250),
-    image_id         NUMBER,
-    created_at       TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by       VARCHAR2(100) NOT NULL,
-    updated_at       TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by       VARCHAR2(100) NOT NULL,
-    deleted_at       TIMESTAMP     NULL
-);
-CREATE UNIQUE INDEX uq_data_sewa_kode_cabang ON data_sewa (kode_cabang) WHERE deleted_at IS NULL;
-```
-
-### `jenis_bangunan` — Building type master data
-```sql
-CREATE TABLE jenis_bangunan (
-    id          NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    kode        VARCHAR2(20)  NOT NULL,
-    nama        VARCHAR2(100) NOT NULL,
-    keterangan  VARCHAR2(500),
-    created_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by  VARCHAR2(100) NOT NULL,
-    updated_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by  VARCHAR2(100) NOT NULL,
-    deleted_at  TIMESTAMP     NULL
-);
-CREATE UNIQUE INDEX uq_jenis_bangunan_kode ON jenis_bangunan (kode) WHERE deleted_at IS NULL;
-```
+| `Boolean` | `BOOLEAN` |
+| `UUID` | `UUID` |
 
 ---
 
 ## Writing New Migrations
 
-When adding a new entity migration:
-1. Determine the next version number (look at existing files in `db/migration/oracle/`)
-2. Write the Oracle file first (`db/migration/oracle/V{n}__create_{table}.sql`)
-3. Write the equivalent PostgreSQL file (`db/migration/postgresql/V{n}__create_{table}.sql`)
-4. All business columns come BEFORE the 5 audit columns (`created_at`, `created_by`, `updated_at`, `updated_by`, `deleted_at`)
-5. Always add `idx_{table}_deleted_at` index (used by `@SQLRestriction("deleted_at IS NULL")`)
-
----
-
-## application.yml Flyway Config
-
-Default (Oracle / UAT-Prod):
-```yaml
-spring:
-  flyway:
-    enabled: true
-    locations: classpath:db/migration/oracle
-```
-
-Local PostgreSQL profile (`application-local-pg.yml`):
-```yaml
-spring:
-  flyway:
-    locations: classpath:db/migration/postgresql
-```
+1. Tentukan nomor versi berikutnya (lihat file terakhir di `db/migration/postgresql/`)
+2. Buat file `postgresql/V{n}__{description}.sql`
+3. Business columns ditulis SEBELUM 7 audit columns
+4. Selalu tambahkan `idx_{table}_deleted_at` (digunakan oleh `@SQLRestriction("deleted_at IS NULL")`)
+5. Gunakan `gen_random_uuid()` sebagai DEFAULT untuk kolom `guid`
 
 ---
 
 ## Verification Checklist
 
-After writing a migration, confirm:
-- [ ] Every table has all 5 audit columns (`created_at`, `created_by`, `updated_at`, `updated_by`, `deleted_at`)
-- [ ] `deleted_at` is `NULL`-able (not `NOT NULL`)
-- [ ] Index on `deleted_at` exists
-- [ ] Unique constraints use `WHERE deleted_at IS NULL` (Oracle) / `WHERE deleted_at IS NULL` (PG) so soft-deleted rows don't block re-creation
-- [ ] FK constraint names follow `fk_{table}_{reftable}`
-- [ ] Both oracle and postgresql versions created
-- [ ] Version number is sequential (no gaps)
-
----
-
-## Migration Patterns & Troubleshooting
-
-> Detail lengkap ada di lesson: [`flyway-migrations.md`](../../backend/lessons/flyway-migrations.md)
-> - Known issues: Oracle identity, Flyway checksums, soft-delete unique indexes
-> - Architecture patterns: soft-delete + `@SQLRestriction`, audit columns, vendor split strategy
+Setelah menulis migration, konfirmasi:
+- [ ] Semua 7 audit columns ada: `id`, `guid`, `created_at`, `created_by`, `updated_at`, `updated_by`, `deleted_at`
+- [ ] `deleted_at` adalah NULL-able (bukan NOT NULL)
+- [ ] `guid` punya `DEFAULT gen_random_uuid()` dan constraint UNIQUE
+- [ ] Index pada `deleted_at` ada
+- [ ] Unique constraints menggunakan `WHERE deleted_at IS NULL` agar baris soft-deleted tidak blokir re-creation
+- [ ] FK constraint names mengikuti `fk_{table}_{reftable}`
+- [ ] Nomor versi sequential (tidak ada gap)
+- [ ] Hanya satu file (postgresql), bukan dua vendor
