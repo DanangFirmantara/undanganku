@@ -105,7 +105,7 @@ Setelah task selesai, jalankan urutan ini:
 
 | File | Topik | Kapan dibaca |
 |---|---|---|
-| _(belum ada)_ | Tambahkan setelah lesson pertama dibuat | — |
+| [`auth-jwt.md`](../../frontend/lessons/auth-jwt.md) | Token storage, AuthService pattern, auto-logout, auth/role guard | Menyentuh auth flow, membuat guard, troubleshooting 401/redirect loop |
 
 ---
 

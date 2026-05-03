@@ -1,18 +1,26 @@
-﻿{
-  "model": "claude-opus-4-7",
+{
+  "model": "claude-sonnet-4-6",
   "theme": "auto",
-  "context_limit": 100000,
   "permissions": {
-    "allow_bash": true,
-    "allow_edit": true,
-    "allow_read": true,
-    "allow_write": true,
-    "allow_web_search": true,
-    "allow_external_tools": true
+    "allow": [
+      "Bash(mvn:*)",
+      "Bash(npm:*)",
+      "Bash(git:*)",
+      "Bash(docker:*)",
+      "Bash(docker-compose:*)"
+    ]
   },
-  "claude_code": {
-    "auto_cwd": true,
-    "use_claude_code_instructions": true
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const p=process.env.CLAUDE_TOOL_INPUT_FILE_PATH||''; const bad=['db/migration/oracle','db/migration/postgresql/V1__','db/migration/postgresql/V2__']; const hit=bad.find(b=>p.includes(b)); if(hit){ console.error('GUARDRAIL: Jangan edit committed migration file: '+p+'. Buat versi baru (V3+) sebagai gantinya.'); process.exit(1); }\""
+          }
+        ]
+      }
+    ]
   }
 }
-

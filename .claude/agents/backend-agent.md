@@ -94,7 +94,7 @@ Setelah issue resolved, jalankan urutan ini:
 
 | File | Topik | Kapan dibaca |
 |---|---|---|
-| _(belum ada)_ | Tambahkan setelah lesson pertama dibuat | — |
+| [`database-flyway.md`](../../backend/lessons/database-flyway.md) | Audit columns, soft-delete, Flyway rules, existing migrations, troubleshooting | Setiap task migration baru atau issue Flyway |
 
 ---
 

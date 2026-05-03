@@ -97,7 +97,9 @@ Setelah issue resolved, jalankan urutan ini:
 
 | File | Topik | Kapan dibaca |
 |---|---|---|
-| _(belum ada)_ | Tambahkan setelah lesson pertama dibuat | — |
+| [`jwt-security.md`](../../backend/lessons/jwt-security.md) | JWT flow, auth filter, role convention, troubleshooting 401/403 | Setiap issue auth, menambah security config, membuat auth endpoint |
+| [`database-flyway.md`](../../backend/lessons/database-flyway.md) | Audit columns, soft-delete pattern, Flyway rules, troubleshooting | Membuat/mengubah migration, issue Flyway checksum |
+| [`jboss-deployment.md`](../../backend/lessons/jboss-deployment.md) | WAR packaging, JBoss config, local dev, frontend bundle | Menyentuh pom.xml, build config, atau deployment |
 
 ---
 
