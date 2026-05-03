@@ -33,7 +33,7 @@
               "src/styles.css"
             ],
             "scripts": [],
-            "baseHref": "/ipa-undanganku/"
+            "baseHref": "/"
           },
           "configurations": {
             "production": {
