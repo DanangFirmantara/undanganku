@@ -106,6 +106,7 @@ Setelah task selesai, jalankan urutan ini:
 | File | Topik | Kapan dibaca |
 |---|---|---|
 | [`auth-jwt.md`](../../frontend/lessons/auth-jwt.md) | Token storage, AuthService pattern, auto-logout, auth/role guard | Menyentuh auth flow, membuat guard, troubleshooting 401/redirect loop |
+| [`local-dev-setup.md`](../../frontend/lessons/local-dev-setup.md) | Proxy config, baseHref, dev server checklist, port issues | Setup dev environment, masalah login 404, proxy tidak efek |
 
 ---
 
