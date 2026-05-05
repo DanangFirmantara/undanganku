@@ -1,0 +1,345 @@
+<!-- ============================================================ -->
+<!-- OPENING CURTAIN                                            -->
+<!-- ============================================================ -->
+<div class="opening-overlay" [class.opening-done]="openingDone()" aria-hidden="true">
+  <div class="opening-inner">
+    <div class="opening-ornament">
+      <span></span><i class="fa-solid fa-heart"></i><span></span>
+    </div>
+    <div class="opening-logo">UndanganKu</div>
+    <div class="opening-divider"></div>
+    <div class="opening-sub">Wedding Invitation</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCROLL PROGRESS                                             -->
+<!-- ============================================================ -->
+<div class="scroll-progress-bar" [style.width.%]="scrollProgress()" role="progressbar" aria-hidden="true"></div>
+
+<!-- ============================================================ -->
+<!-- NAVBAR -->
+<!-- ============================================================ -->
+<nav class="navbar">
+  <div class="navbar-container">
+    <a class="navbar-brand" (click)="scrollToSection('hero')">UndanganKu</a>
+
+    <ul class="navbar-links">
+      <li><a (click)="scrollToSection('demo')">TEMPLATE</a></li>
+      <li><a (click)="scrollToSection('features')">FITUR</a></li>
+      <li><a (click)="scrollToSection('pricing')">HARGA</a></li>
+      <li><a (click)="scrollToSection('testimonial')">TESTIMONI</a></li>
+    </ul>
+
+    <div class="navbar-actions">
+      <a [routerLink]="['/login']" class="btn-outline-sm">Masuk</a>
+      <a [routerLink]="['/login']" class="btn-primary-sm">Buat Undangan</a>
+    </div>
+
+    <button class="hamburger" (click)="toggleMobileMenu()" aria-label="Menu">
+      @if (mobileMenuOpen()) {
+        <i class="fa-solid fa-xmark"></i>
+      } @else {
+        <i class="fa-solid fa-bars"></i>
+      }
+    </button>
+  </div>
+
+  @if (mobileMenuOpen()) {
+    <div class="mobile-menu">
+      <a (click)="scrollToSection('demo')">TEMPLATE</a>
+      <a (click)="scrollToSection('features')">FITUR</a>
+      <a (click)="scrollToSection('pricing')">HARGA</a>
+      <a (click)="scrollToSection('testimonial')">TESTIMONI</a>
+      <div class="mobile-menu-actions">
+        <a [routerLink]="['/login']" class="btn-outline-sm" (click)="closeMobileMenu()">Masuk</a>
+        <a [routerLink]="['/login']" class="btn-primary-sm" (click)="closeMobileMenu()">Buat Undangan</a>
+      </div>
+    </div>
+  }
+</nav>
+
+<!-- ============================================================ -->
+<!-- HERO -->
+<!-- ============================================================ -->
+<section id="hero" class="hero-section">
+
+  <!-- Floating petals (decorative, aria-hidden) -->
+  <div class="petals-layer" aria-hidden="true">
+    @for (p of petals; track $index) {
+      <span class="petal"
+        [style.left]="p.left"
+        [style.width]="p.width"
+        [style.height]="p.height"
+        [style.opacity]="p.opacity"
+        [style.animation-delay]="p.animationDelay"
+        [style.animation-duration]="p.animationDuration">
+      </span>
+    }
+  </div>
+
+  <div class="hero-container">
+    <!-- Left: copy — animates in after curtain -->
+    <div class="hero-copy" [class.animate]="openingDone()">
+      <div class="trust-badge">
+        <div class="stars">
+          @for (s of [1,2,3,4,5]; track s) {
+            <i class="fa-solid fa-star"></i>
+          }
+        </div>
+        <span>DIPERCAYA 2.400+ PASANGAN DI INDONESIA</span>
+      </div>
+
+      <h1 class="hero-heading">
+        Undangan Pernikahan<br>
+        yang <em>Dikenang Selamanya</em>
+      </h1>
+
+      <p class="hero-subtext">
+        Buat dalam 5 menit. Bagikan via WhatsApp. Tampil
+        indah di semua layar ponsel dengan sentuhan tradisi
+        yang modern.
+      </p>
+
+      <div class="hero-cta">
+        <a [routerLink]="['/login']" class="btn-primary">
+          Buat Undanganmu
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
+        <a (click)="scrollToSection('demo')" class="btn-ghost">
+          Lihat Demo
+          <i class="fa-solid fa-play"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Right: phone — parallax drift -->
+    <div class="hero-phone-wrapper" [class.animate]="openingDone()" [style.transform]="phoneParallax()">
+      <div class="hero-phone-glow"></div>
+      <div class="phone-mockup">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <img src="assets/landing/wedding-photo.jpg" alt="Contoh undangan digital" class="phone-bg-img" />
+          <div class="phone-gradient"></div>
+          <div class="phone-content">
+            <p class="phone-label">THE WEDDING OF</p>
+            <h3 class="phone-couple">Rizky &amp; Nadia</h3>
+            <div class="phone-countdown">
+              <div class="countdown-box">
+                <span class="countdown-num">{{ days() }}</span>
+                <span class="countdown-label">HARI</span>
+              </div>
+              <div class="countdown-box">
+                <span class="countdown-num">{{ hours() }}</span>
+                <span class="countdown-label">JAM</span>
+              </div>
+              <div class="countdown-box">
+                <span class="countdown-num">{{ minutes() }}</span>
+                <span class="countdown-label">MENIT</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- LIVE DEMO -->
+<!-- ============================================================ -->
+<section id="demo" class="demo-section">
+  <div class="demo-container">
+    <div class="section-label" data-reveal>PRATINJAU LANGSUNG</div>
+    <h2 class="section-title-light" data-reveal>Ini Contoh Undangannya — Coba Scroll</h2>
+
+    <div class="demo-preview" data-reveal>
+      <img src="assets/landing/demo-section.png" alt="Demo tampilan undangan digital" class="demo-img" />
+      <div class="demo-features-overlay">
+        <div class="demo-feature-tag">
+          <i class="fa-solid fa-clock"></i> Countdown Otomatis
+        </div>
+        <div class="demo-feature-tag">
+          <i class="fa-solid fa-envelope-open-text"></i> Amplop Digital
+        </div>
+        <div class="demo-feature-tag">
+          <i class="fa-solid fa-comments"></i> Ucapan Tamu
+        </div>
+      </div>
+    </div>
+
+    <a [routerLink]="['/login']" class="demo-cta-link" data-reveal>
+      Suka tampilannya? Buat milikmu →
+    </a>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- FEATURES -->
+<!-- ============================================================ -->
+<section id="features" class="features-section">
+  <div class="section-container">
+    <h2 class="section-title-dark" data-reveal>Semua yang Dibutuhkan, Dalam Satu Undangan</h2>
+
+    <div class="features-grid" data-reveal>
+      @for (feature of features; track feature.title) {
+        <div class="feature-card">
+          <div class="feature-icon-wrap">
+            <i class="fa-solid {{ feature.icon }}"></i>
+          </div>
+          <h3 class="feature-title">{{ feature.title }}</h3>
+          <p class="feature-desc">{{ feature.description }}</p>
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- HOW IT WORKS -->
+<!-- ============================================================ -->
+<section id="how-it-works" class="how-section">
+  <div class="section-container">
+    <h2 class="section-title-dark" data-reveal>Cara Kerjanya Mudah</h2>
+
+    <div class="steps-grid" data-reveal>
+      @for (step of steps; track step.number) {
+        <div class="step-card">
+          <div class="step-number">{{ step.number }}</div>
+          <h3 class="step-title">{{ step.title }}</h3>
+          <p class="step-desc">{{ step.description }}</p>
+          @if (!$last) {
+            <div class="step-arrow">
+              <i class="fa-solid fa-arrow-right"></i>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PRICING -->
+<!-- ============================================================ -->
+<section id="pricing" class="pricing-section">
+  <div class="section-container">
+    <div class="pricing-card" data-reveal>
+      <div class="pricing-badge">PALING POPULER</div>
+      <h2 class="pricing-name">Paket Premium</h2>
+      <div class="pricing-price">
+        <span class="price-amount">Rp 149.000</span>
+      </div>
+      <p class="pricing-note">Bayar sekali, aktif selamanya</p>
+
+      <ul class="pricing-features">
+        @for (feat of pricingFeatures; track feat) {
+          <li>
+            <i class="fa-solid fa-check"></i>
+            {{ feat }}
+          </li>
+        }
+      </ul>
+
+      <a [routerLink]="['/login']" class="btn-primary btn-full">
+        Buat Undangan Sekarang
+        <i class="fa-solid fa-arrow-right"></i>
+      </a>
+
+      <div class="trust-icons">
+        <div class="trust-icon-item">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Midtrans</span>
+        </div>
+        <div class="trust-icon-item">
+          <i class="fa-solid fa-lock"></i>
+          <span>SSL Secure</span>
+        </div>
+        <div class="trust-icon-item">
+          <i class="fa-solid fa-ban"></i>
+          <span>Anti-Spam</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- TESTIMONIAL -->
+<!-- ============================================================ -->
+<section id="testimonial" class="testimonial-section">
+  <div class="section-container">
+    <div class="section-label" data-reveal>TESTIMONI BAHAGIA</div>
+    <h2 class="section-title-light" data-reveal>Kata Mereka</h2>
+
+    <div class="testimonial-grid" data-reveal>
+      @for (t of testimonials; track t.name) {
+        <div class="testimonial-card">
+          <div class="testimonial-stars">
+            @for (s of [1,2,3,4,5]; track s) {
+              <i class="fa-solid fa-star"></i>
+            }
+          </div>
+          <p class="testimonial-quote">{{ t.quote }}</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">
+              <img [src]="t.avatar" [alt]="t.name" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+              <div class="avatar-fallback" style="display:none">
+                <i class="fa-solid fa-user"></i>
+              </div>
+            </div>
+            <div>
+              <div class="testimonial-name">{{ t.name }}</div>
+              <div class="testimonial-location">{{ t.location }}</div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- FOOTER CTA -->
+<!-- ============================================================ -->
+<section class="footer-cta-section">
+  <div class="footer-cta-bg">
+    <!-- <img src="assets/landing/footer-bg.png" alt="" class="footer-cta-img" /> -->
+  </div>
+  <div class="footer-cta-content" data-reveal>
+    <h2 class="footer-cta-title">Siap Membuat Undanganmu?</h2>
+    <p class="footer-cta-subtitle">
+      Bergabunglah dengan ribuan pasangan lainnya yang telah mempercayakan momen
+      bahagianya kepada kami.
+    </p>
+    <a [routerLink]="['/login']" class="btn-primary-lg">
+      Mulai Sekarang →
+    </a>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- FOOTER -->
+<!-- ============================================================ -->
+<footer class="site-footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <div class="footer-logo">UndanganKu</div>
+      <p class="footer-tagline">
+        Keindahan Tradisi dalam Sentuhan Digital.<br>
+        Solusi undangan pernikahan modern nomor satu di Indonesia.
+      </p>
+    </div>
+
+    <div class="footer-links">
+      <a href="#">Kebijakan Privasi</a>
+      <a href="#">Syarat &amp; Ketentuan</a>
+      <a href="#">Bantuan</a>
+      <a href="#">Kontak Kami</a>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>© 2024 UndanganKu. Keindahan Tradisi dalam Sentuhan Digital.</p>
+  </div>
+</footer>

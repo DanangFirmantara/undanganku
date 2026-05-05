@@ -10,7 +10,7 @@
 
     <nav class="mt-6">
       <a
-        routerLink="/dashboard/user"
+        routerLink="/app/dashboard/user"
         routerLinkActive="bg-gray-700"
         class="block px-6 py-3 hover:bg-gray-800 transition"
       >
@@ -19,7 +19,7 @@
 
       @if (isAdmin(authService.currentUser())) {
         <a
-          routerLink="/dashboard/admin"
+          routerLink="/app/dashboard/admin"
           routerLinkActive="bg-gray-700"
           class="block px-6 py-3 hover:bg-gray-800 transition"
         >
@@ -27,7 +27,7 @@
         </a>
 
         <a
-          routerLink="/users"
+          routerLink="/app/users"
           routerLinkActive="bg-gray-700"
           class="block px-6 py-3 hover:bg-gray-800 transition"
         >

@@ -8,11 +8,17 @@ import { UserListComponent } from './features/users/user-list.component';
 
 export const routes: Routes = [
   {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./landing/landing.component').then(m => m.LandingComponent),
+  },
+  {
     path: 'login',
     component: LoginComponent,
   },
   {
-    path: '',
+    path: 'app',
     component: AppLayoutComponent,
     canActivate: [authGuard],
     children: [

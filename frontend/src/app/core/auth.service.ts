@@ -44,7 +44,7 @@ export class AuthService {
       .subscribe({
         next: (response) => {
           this.setAuthState(response);
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/app/dashboard']);
         },
         error: (error) => {
           console.error('Login failed', error);
