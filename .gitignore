@@ -74,3 +74,10 @@ out/
 build/
 bin/
 .cache/
+
+# ==========================================
+# CLAUDE
+# ==========================================
+.claude/
+backend/lessons/
+frontend/lessons/

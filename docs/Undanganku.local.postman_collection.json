@@ -1,13 +1,13 @@
 {
   "info": {
-    "name": "Undanganku API — Production (103.93.129.174)",
-    "description": "REST API collection for Undanganku — server: 103.93.129.174",
+    "name": "Undanganku API — Local (localhost)",
+    "description": "REST API collection for Undanganku — local development (localhost:8080)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "base_url",
-      "value": "http://103.93.129.174/ipa-undanganku",
+      "value": "http://localhost:8080/ipa-undanganku",
       "type": "string"
     },
     {
