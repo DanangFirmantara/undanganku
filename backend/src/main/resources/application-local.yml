@@ -3,7 +3,7 @@
     allow-bean-definition-overriding: true
 
   datasource:
-    url: jdbc:postgresql://103.93.129.174:5432/undanganku
+    url: jdbc:postgresql://103.93.129.174:5433/undanganku
     username: myuser
     password: P@ssw0rd
     hikari:
@@ -33,6 +33,6 @@ jwt:
 logging:
   level:
     root: INFO
-    id.co.bankmandiri.ep.undanganku: DEBUG
+    id.co.tara.undanganku: DEBUG
     org.springframework.security: DEBUG
 

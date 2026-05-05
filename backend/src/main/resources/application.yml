@@ -47,7 +47,7 @@ jwt:
 logging:
   level:
     root: INFO
-    id.co.bankmandiri.ep.undanganku: DEBUG
+    id.co.tara.undanganku: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
